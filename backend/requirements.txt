@@ -53,7 +53,6 @@ h2==4.3.0
 hpack==4.1.0
 httpcore==1.0.9
 httplib2==0.22.0
-httpx==0.28.1
 huepy==1.2.1
 huggingface-hub==0.34.4
 hyperframe==6.1.0
@@ -126,7 +125,6 @@ pyOpenSSL==25.1.0
 pyparsing==3.2.3
 pyperclip==1.9.0
 PyRect==0.2.0
-pyroaring==1.1.0
 PyScreeze==1.0.1
 PySocks==1.7.1
 pytest==8.4.2
@@ -199,7 +197,6 @@ yarl==1.23.0
 yt-dlp==2025.10.14
 zipp==3.23.0
 zope.interface==7.2
-zstandard==0.25.0
-httpx==0.27.0
 pydantic==2.7.1
 torch==2.12.0
+httpx==0.28.1
