@@ -203,4 +203,3 @@ zope.interface==7.2
 zstandard==0.25.0
 httpx==0.27.0
 pydantic==2.7.1
-pydantic_core==2.18.2
