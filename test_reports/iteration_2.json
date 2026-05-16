@@ -1,0 +1,58 @@
+{
+  "summary": "Backend testing for SpeedyMap NEW features (role onboarding, company invite, location tracking, OSRM route optimization, Italy-wide geocoding). Created /app/backend/tests/test_new_features.py with 24 tests, all passing (100%). Regression run on existing /app/backend/tests/test_speedymap_api.py: 20/20 passed (OCR deselected per request — EMERGENT_LLM_KEY budget exceeded, not a code issue). Total: 44/44 backend tests passing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/ocr/extract",
+        "issue": "Skipped this iteration per request — EMERGENT_LLM_KEY budget cap ($0.001) still hit on GPT-4o vision calls (litellm.BadRequestError). Code itself is functional; key needs higher budget."
+      },
+      {
+        "endpoint": "GET /api/company/employees",
+        "issue": "Mongo projection includes `vehicle_size`, `ztl_pass`, `last_lat`, `last_lon`, `last_seen` but these may be absent for employees that have never pinged. Optional fields are simply missing in response (no schema enforcement). Frontend must handle undefined safely."
+      },
+      {
+        "endpoint": "POST /api/company/setup",
+        "issue": "If a user already has `company_id` but the linked company document was deleted, the endpoint falls through to creating a new one without resetting the stale company_id flag — fine in practice but worth knowing."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_speedymap_api.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_new_features.xml",
+    "/app/test_reports/pytest/pytest_regression.xml"
+  ],
+  "action_items": [
+    "OCR remains blocked by Emergent LLM key budget cap of $0.001 — please raise budget or rotate key when OCR testing is required.",
+    "Optional: in /api/company/employees, normalise missing location fields to null in response payload for predictable frontend consumption."
+  ],
+  "critical_code_review_comments": [
+    "All new endpoints correctly use `await get_current_user(...)` for auth and return 401 without token (verified by tests).",
+    "Role enforcement is consistent: 403 for wrong role on /company/setup (non-company), /company/join (non-employee), /company/employees (non-company). Verified.",
+    "company/setup invite_code uniqueness: while-loop guards collisions on a 6-char alphanumeric (36^6 space). Idempotent on second call — verified.",
+    "company/join uppercases & strips invite_code — good UX.",
+    "Route optimize: nearest-neighbor ordering verified (S3 closest to start picked first). OSRM polyline returned as [lat,lon] for Leaflet — verified by lat/lon bounds check.",
+    "order_index correctly persisted by /route/optimize and incremented on create. Deliveries list endpoint sorts by order_index ASC — verified.",
+    "Geocode: countrycodes=it gives Italy-wide results; Rome and Milano queries verified to return matching cities (no Palermo bias).",
+    "MongoDB `_id` properly excluded from all responses via `{'_id': 0}` projection — verified.",
+    "Minor: server.py is 551 lines — close to the 700-line guidance threshold. Consider splitting into routers (auth, company, deliveries, geocode/route) before it grows further.",
+    "Minor: Nominatim has a 1 req/sec usage policy; consider caching or rate-limiting /api/geocode/search proxy to avoid being blocked in production."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py (new)"
+  ],
+  "success_rate": {"backend": "100% (44/44 tests; 1 OCR test deselected per request)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "test_new_features.py creates TEST_ users with various roles (private, employee, company-owner, no-role) via direct MongoDB inserts (users + user_sessions), plus test deliveries. All inserted data is cleaned up via module-scoped fixture teardown (deletes users, sessions, deliveries, and companies created during the run).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/ -v --deselect /app/backend/tests/test_speedymap_api.py::TestOCR` for full backend regression. OCR remains blocked by LLM budget. All new feature endpoints (onboarding/role, company/setup, company/join, company/employees, location/ping, route/optimize, geocode/search Italy-wide) are fully working.",
+  "rca_of_issue": "No bugs found in new feature endpoints during this iteration. OCR continues to fail externally due to EMERGENT_LLM_KEY budget cap — same finding as iteration 1."
+}

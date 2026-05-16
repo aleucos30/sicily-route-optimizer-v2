@@ -1,0 +1,207 @@
+{
+  "app_name": "SpeedyMap",
+  "personality": "7 Dark-First Utility DARK",
+  "personality_one_liner": "A high-contrast, OLED-friendly command center optimized for driver legibility on the move in Palermo's complex streets.",
+  "theme": {
+    "light": {
+      "surface": "#FFFFFF",
+      "onSurface": "#09090B",
+      "surfaceSecondary": "#F4F4F5",
+      "onSurfaceSecondary": "#27272A",
+      "surfaceTertiary": "#E4E4E7",
+      "onSurfaceTertiary": "#3F3F46",
+      "surfaceInverse": "#09090B",
+      "onSurfaceInverse": "#FFFFFF",
+      "brand": "#FF5A00",
+      "brandPrimary": "#FF5A00",
+      "onBrandPrimary": "#FFFFFF",
+      "brandSecondary": "#FF7A33",
+      "onBrandSecondary": "#FFFFFF",
+      "brandTertiary": "#FFEFE6",
+      "onBrandTertiary": "#CC4800",
+      "success": "#10B981",
+      "onSuccess": "#FFFFFF",
+      "warning": "#F59E0B",
+      "onWarning": "#000000",
+      "error": "#EF4444",
+      "onError": "#FFFFFF",
+      "info": "#3B82F6",
+      "onInfo": "#FFFFFF",
+      "border": "#E4E4E7",
+      "borderStrong": "#A1A1AA",
+      "divider": "#F4F4F5"
+    },
+    "dark": {
+      "surface": "#000000",
+      "onSurface": "#FFFFFF",
+      "surfaceSecondary": "#111111",
+      "onSurfaceSecondary": "#D4D4D8",
+      "surfaceTertiary": "#222222",
+      "onSurfaceTertiary": "#A1A1AA",
+      "surfaceInverse": "#FFFFFF",
+      "onSurfaceInverse": "#000000",
+      "brand": "#FF5A00",
+      "brandPrimary": "#FF5A00",
+      "onBrandPrimary": "#FFFFFF",
+      "brandSecondary": "#FF7A33",
+      "onBrandSecondary": "#FFFFFF",
+      "brandTertiary": "#331200",
+      "onBrandTertiary": "#FF8F50",
+      "success": "#059669",
+      "onSuccess": "#FFFFFF",
+      "warning": "#D97706",
+      "onWarning": "#000000",
+      "error": "#DC2626",
+      "onError": "#FFFFFF",
+      "info": "#2563EB",
+      "onInfo": "#FFFFFF",
+      "border": "#27272A",
+      "borderStrong": "#52525B",
+      "divider": "#18181B"
+    }
+  },
+  "typography": {
+    "displayFontFamily": "Barlow Condensed",
+    "textFontFamily": "Inter",
+    "scale": {
+      "sm": 14,
+      "base": 16,
+      "lg": 18,
+      "xl": 22,
+      "2xl": 28
+    }
+  },
+  "spacing": {
+    "rule": "Handle spacing correctly dont have extra spaces where its not required, handle padding and margin corectly and subtle for buttons and components",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "stack_only",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [
+      "Skip glass on this app. Dark-First Utility needs pure solid backgrounds for OLED clarity."
+    ],
+    "dont's": [
+      "No blur on the bottom sheet. Use solid surfaceSecondary."
+    ]
+  },
+  "haptics": {
+    "enabled": true,
+    "NO_TOLERANCE": "always have switcher in settings or profile page",
+    "library": "expo-haptics",
+    "events": {
+      "tab_switch": "selection",
+      "toggle_switch_flip": "selection",
+      "segmented_control_change": "selection",
+      "filter_chip_select": "selection",
+      "slider_drag_end": "selection",
+      "primary_cta_tap": "impact_medium",
+      "submission_success": "notification_success",
+      "submission_error": "notification_error",
+      "pull_to_refresh_trigger": "impact_light",
+      "long_press_confirm": "impact_heavy",
+      "camera_scan_trigger": "impact_heavy"
+    },
+    "wiring": "Haptic calls live inside these components (Button primary, TabBar item, SegmentedControl, FilterChip, switch, slider) they fire automatically on use. Dev agent does NOT wire haptics ad-hoc per screen."
+  },
+  "platform_libraries": {
+    "tabs": {
+      "ios": "NativeTabs (from expo-router/unstable-native-tabs)",
+      "android": "Tabs (from expo-router)"
+    },
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "gradient": "expo-linear-gradient",
+    "blur": "expo-blur",
+    "haptics": "expo-haptics",
+    "safe_area": "react-native-safe-area-context",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler",
+    "icons": "@expo/vector-icons"
+  },
+  "chip_row": {
+    "NO_TOLERANCE": "Top filter / category chip rows are chrome, not content.",
+    "specs": {
+      "height": 56,
+      "chip_height": 36,
+      "behavior": "Horizontal scroll only (no flexWrap, no flex: 1, no space-between). Sits outside the scrollable list as a sibling in the sticky header stack. Renders identically across Loading/Empty/Error/Loaded."
+    }
+  },
+  "screens": [
+    {
+      "name": "Auth",
+      "purpose": "Google Authentication login screen with a dark, high-contrast hero background.",
+      "states": {
+        "loading": "Skeleton block over the login button. Reanimated shimmer.",
+        "empty": "N/A",
+        "error": "Error toast with retry button for failed Auth."
+      }
+    },
+    {
+      "name": "MainDashboard",
+      "purpose": "70% live map and 30% sliding bottom sheet. Contains top chip row for vehicle size & ZTL pass toggle.",
+      "states": {
+        "loading": "Map area shows a grid skeleton; bottom sheet shows 3 skeleton delivery cards (same height, 3 lines of text) with static blocks.",
+        "empty": "Map empty view. Bottom sheet shows an illustration (Palermo map) + 'No pending deliveries'.",
+        "error": "Full screen overlay: 'Unable to load route data' + Retry."
+      }
+    },
+    {
+      "name": "AddStopModal",
+      "purpose": "Manual address entry modal with autocomplete, and a prominent OCR camera scan simulation button.",
+      "states": {
+        "loading": "Skeleton lines for address autocomplete results.",
+        "empty": "Form is clear, waiting for input or camera scan.",
+        "error": "Inline text error below the input if address is not found."
+      }
+    }
+  ],
+  "images": {
+    "login_hero": {
+      "light": "https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwxfHxkZWxpdmVyeSUyMHNjb290ZXIlMjBuaWdodHxlbnwwfHx8fDE3Nzg5MzgyMzF8MA&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1695654390723-479197a8c4a3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwyfHxkZWxpdmVyeSUyMHNjb290ZXIlMjBuaWdodHxlbnwwfHx8fDE3Nzg5MzgyMzF8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Delivery scooter at night"
+    },
+    "empty_deliveries_illustration": {
+      "light": "https://images.unsplash.com/photo-1708413798355-b49f718e291a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNTl8MHwxfHNlYXJjaHwxfHxQYWxlcm1vJTIwY2l0eSUyMG5pZ2h0JTIwbWFwJTIwYWVyaWFsfGVufDB8fHx8MTc3ODkzODIzMXww&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1708413798355-b49f718e291a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNTl8MHwxfHNlYXJjaHwxfHxQYWxlcm1vJTIwY2l0eSUyMG5pZ2h0JTIwbWFwJTIwYWVyaWFsfGVufDB8fHx8MTc3ODkzODIzMXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Aerial view of city street at night"
+    },
+    "ocr_scan_mock": {
+      "light": "https://images.unsplash.com/photo-1631010231931-d2c396b444ec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwyfHxzaGlwcGluZyUyMGxhYmVsJTIwYm94fGVufDB8fHx8MTc3ODkzODIzMXww&ixlib=rb-4.1.0&q=85",
+      "dark": "https://images.unsplash.com/photo-1631010231931-d2c396b444ec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwyfHxzaGlwcGluZyUyMGxhYmVsJTIwYm94fGVufDB8fHx8MTc3ODkzODIzMXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Shipping label on cardboard box"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the '7 Dark-First Utility DARK' personality. High contrast, pure solid black/dark backgrounds for the OLED experience. No glassmorphism.",
+    "Implement Google Auth for the login flow. Use a dark, high-contrast hero image.",
+    "The Main Dashboard MUST render a sticky chip row AT THE TOP OF THE SCREEN (or top of the map container), outside any scroll view, for 'Vehicle Size (S/M/L)' and 'ZTL Pass Active (Toggle)'. Use fixed 56pt height, 36pt chip height.",
+    "Use react-native-maps for the 70% upper screen real estate. The Floating Action Button (FAB) for adding a stop MUST sit above the bottom sheet overlay (e.g. absolute positioning anchored above the sheet's rest height) and use 'brandPrimary' (#FF5A00).",
+    "Use @gorhom/bottom-sheet for the bottom 30% area. It must be draggable. The list items must clearly flag addresses inside Palermo's ZTL with an 'error' badge if the driver does not have a ZTL Pass selected in the chip row.",
+    "For the Add Stop form (use a Modal or nested Screen), include an 'OCR Scan Label' button. When tapped, mock a camera view (use the ocr_scan_mock image as background) and simulate extracting an address (e.g. 'Via Roma, 15, Palermo'). Auto-fill the address input after a short delay.",
+    "Add testIDs in kebab-case to all interactive elements (e.g., testID='ocr-scan-button', testID='add-stop-fab', testID='ztl-toggle').",
+    "Global Haptics toggler must be implemented. Wrap all expo-haptics calls in a util that respects the toggle state.",
+    "Skeleton loading states are REQUIRED for the delivery list. Never use just an ActivityIndicator when the content shape (list of deliveries) is known.",
+    "Ensure safe area is correctly applied. The chip row at the top should clear the notch, and the list content in the bottom sheet should clear the home indicator."
+  ]
+}
