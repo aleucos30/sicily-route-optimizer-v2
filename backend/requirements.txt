@@ -6,3 +6,4 @@ requests==2.32.4
 httpx==0.28.1
 pydantic
 pydantic_core
+motor
