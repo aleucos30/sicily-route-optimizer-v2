@@ -2,6 +2,7 @@ fastapi==0.136.1
 uvicorn==0.47.0
 pymongo==4.17.0
 python-dotenv==1.1.1
-pydantic==2.7.1
 requests==2.32.4
 httpx==0.28.1
+pydantic
+pydantic_core
