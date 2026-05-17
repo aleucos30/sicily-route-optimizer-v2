@@ -206,6 +206,27 @@ async def auth_logout(authorization: Optional[str] = Header(None)):
     return {"ok": True}
 
 
+class OnboardingData(BaseModel):
+    role: str
+    vehicle_size: str
+    ztl_pass: bool
+
+@api_router.post("/onboarding/complete")
+async def complete_onboarding(body: OnboardingData, authorization: Optional[str] = Header(None)):
+    user = await get_current_user(authorization)
+    if body.role not in ("private", "employee", "company"):
+        raise HTTPException(400, "Ruolo non valido")
+    
+    await db.users.update_one(
+        {"user_id": user["user_id"]}, 
+        {"$set": {
+            "role": body.role,
+            "vehicle_size": body.vehicle_size,
+            "ztl_pass": body.ztl_pass
+        }}
+    )
+    return {"message": "Onboarding completato con successo!"}
+
 # ---------- Onboarding / Role ----------
 @api_router.post("/onboarding/role")
 async def set_role(body: RoleSet, authorization: Optional[str] = Header(None)):
