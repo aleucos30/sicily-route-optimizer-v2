@@ -18,9 +18,10 @@ export default function Index() {
   if (user.role === "company" && !user.company_id) return <Redirect href="/onboarding" />;
   if (user.role === "employee" && !user.company_id) return <Redirect href="/onboarding" />;
   if (user.role === "company") return <Redirect href="/company" />;
-  return <Redirect href="/dashboard" />;
+  return <Redirect href="/onboarding" />;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface },
 });
+
