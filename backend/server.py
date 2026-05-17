@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Header
+﻿from fastapi import FastAPI, APIRouter, HTTPException, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -528,7 +528,7 @@ async def ocr_extract(body: OCRRequest, authorization: Optional[str] = Header(No
             session_id=f"ocr_{uuid.uuid4().hex[:8]}",
             system_message=(
                 "Estrai i dati dell'indirizzo di spedizione da foto di etichette. "
-                "Rispondi con JSON STRETTO con chiavi: address (via, numero, città, CAP, paese), "
+                "Rispondi con JSON STRETTO con chiavi: address (via, numero, cittÃ , CAP, paese), "
                 "recipient (persona/azienda se visibile, altrimenti null). "
                 "RISPONDI SOLO con l'oggetto JSON, nessun markdown."
             ),
@@ -728,11 +728,11 @@ class UserAuth(BaseModel):
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-@api_router.post("/register")
+@app.post("/api/register")
 async def register_user(user: UserAuth):
     existing = await db.users.find_one({"email": user.email})
     if existing:
-        raise HTTPException(status_code=400, detail="Email già registrata.")
+        raise HTTPException(status_code=400, detail="Email giÃ  registrata.")
     
     user_dict = {
         "email": user.email, 
@@ -743,7 +743,7 @@ async def register_user(user: UserAuth):
     await db.users.insert_one(user_dict)
     return {"message": "Registrazione completata!"}
 
-@api_router.post("/login")
+@app.post("/api/login")
 async def login_user(user: UserAuth):
     existing = await db.users.find_one({"email": user.email})
     if not existing or existing.get("password") != hash_password(user.password):
