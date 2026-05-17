@@ -9,7 +9,7 @@ export default function LoginScreen() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { setSession } = useAuth();
 
   const BACKEND_URL = "https://sicily-route-optimizer-v2.onrender.com";
 
@@ -105,4 +105,5 @@ const styles = StyleSheet.create({
   switchLink: { marginTop: 25, alignItems: 'center' },
   switchText: { color: '#005088', fontSize: 14, fontWeight: '600' }
 });
+
 

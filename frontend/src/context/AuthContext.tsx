@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+﻿import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const BACKEND_URL = "https://sicily-route-optimizer-v2.onrender.com";
 const TOKEN_KEY = "speedymap_token";
 
 export type Role = "private" | "employee" | "company" | null;
