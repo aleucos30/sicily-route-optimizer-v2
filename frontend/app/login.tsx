@@ -18,7 +18,8 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const endpoint = isRegistering ? '/auth/register' : '/auth/login';
+    // IMPORTANTE: aggiunto /api/ prima delle rotte per allinearsi a server.py
+    const endpoint = isRegistering ? '/api/register' : '/api/login';
     
     try {
       const response = await fetch(`${BACKEND_URL}${endpoint}`, {
