@@ -40,10 +40,10 @@ export default function LoginScreen() {
           router.replace('/dashboard');
         }
       } else {
-        Alert.alert("Nota", data.detail || "Verifica le tue credenziali.");
+        Alert.alert("Risposta Server", Array.isArray(data.detail) ? JSON.stringify(data.detail) : (data.detail || "Credenziali errate"));
       }
     } catch (error) {
-      Alert.alert("Server in risveglio", "Il server su Render potrebbe impiegare 30-50 secondi per attivarsi al primo tentativo. Riprova tra un istante.");
+      Alert.alert("Errore Tecnico", "Dettaglio esatto: " + String(error));
     } finally {
       setLoading(false);
     }
@@ -105,5 +105,9 @@ const styles = StyleSheet.create({
   switchLink: { marginTop: 25, alignItems: 'center' },
   switchText: { color: '#005088', fontSize: 14, fontWeight: '600' }
 });
+
+
+
+
 
 
