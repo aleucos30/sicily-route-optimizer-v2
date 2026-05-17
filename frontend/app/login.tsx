@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/src/context/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -8,6 +9,7 @@ export default function LoginScreen() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const BACKEND_URL = "https://sicily-route-optimizer-v2.onrender.com";
 
@@ -103,3 +105,4 @@ const styles = StyleSheet.create({
   switchLink: { marginTop: 25, alignItems: 'center' },
   switchText: { color: '#005088', fontSize: 14, fontWeight: '600' }
 });
+
