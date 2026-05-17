@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/src/context/AuthContext";
@@ -14,7 +14,7 @@ export default function Index() {
     );
   }
   if (!user) return <Redirect href="/login" />;
-  if (!user.role) return <Redirect href="/onboarding" />;
+  if (!user.role || user.role === "driver") return <Redirect href="/onboarding" />;
   if (user.role === "company" && !user.company_id) return <Redirect href="/onboarding" />;
   if (user.role === "employee" && !user.company_id) return <Redirect href="/onboarding" />;
   if (user.role === "company") return <Redirect href="/company" />;

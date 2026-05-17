@@ -9,7 +9,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+  const BACKEND_URL = "https://sicily-route-optimizer-v2.onrender.com";
 
   const handleAuth = async () => {
     if (!email || !password) {

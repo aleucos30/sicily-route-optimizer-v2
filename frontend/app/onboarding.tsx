@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   StyleSheet, View, Text, Pressable, TextInput, ActivityIndicator,
-  Alert, KeyboardAvoidingView, Platform, ScrollView,
+  Alert, KeyboardAvoidingView, Platform, ScrollView, Switch
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,25 +11,32 @@ import { useAuth } from "@/src/context/AuthContext";
 import { colors, spacing, radius } from "@/src/theme";
 import { t } from "@/src/i18n";
 
-type Step = "choose" | "company" | "employee" | "company-done";
+type Step = "choose" | "company" | "employee" | "vehicle" | "company-done";
+type VehicleType = "car" | "van" | "scooter";
 
 export default function Onboarding() {
   const router = useRouter();
   const { user, setRole, setupCompany, joinCompany, refresh } = useAuth();
+  
+  // Stati del flusso
   const [step, setStep] = useState<Step>("choose");
   const [busy, setBusy] = useState(false);
+  
+  // Stati Azienda / Dipendente
   const [companyName, setCompanyName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  
+  // Nuovi Stati richiesti: Veicolo e ZTL
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleType>("van");
+  const [hasZtlPass, setHasZtlPass] = useState(false);
 
-  // If user already has role + company (or is private), redirect
+  // Controllo reindirizzamento se il profilo è già completo
   useEffect(() => {
     if (!user) return;
-    if (user.role === "private") router.replace("/dashboard");
-    else if (user.role === "employee" && user.company_id) router.replace("/dashboard");
+    if (user.role === "private" && user.vehicle_type) router.replace("/dashboard");
+    else if (user.role === "employee" && user.company_id && user.vehicle_type) router.replace("/dashboard");
     else if (user.role === "company" && user.company_id) {
-      // show the invite code summary
       if (user.company?.invite_code) {
         setGeneratedCode(user.company.invite_code);
         setStep("company-done");
@@ -37,314 +44,231 @@ export default function Onboarding() {
         router.replace("/company");
       }
     }
-  }, [user, router]);
+  }, [user]);
 
-  const haptic = (style: "select" | "heavy" = "select") => {
-    if (Platform.OS === "web") return;
-    if (style === "heavy") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    else Haptics.selectionAsync();
-  };
-
-  const choosePrivate = async () => {
-    haptic();
-    setBusy(true);
-    const u = await setRole("private");
-    setBusy(false);
-    if (u) router.replace("/dashboard");
-    else Alert.alert("Errore", "Impossibile salvare il ruolo");
-  };
-
-  const startEmployee = async () => {
-    haptic();
-    setBusy(true);
-    await setRole("employee");
-    setBusy(false);
-    setStep("employee");
-  };
-
-  const startCompany = async () => {
-    haptic();
-    setBusy(true);
-    await setRole("company");
-    setBusy(false);
-    setStep("company");
-  };
-
-  const doJoin = async () => {
-    if (inviteCode.trim().length < 4) {
-      Alert.alert("Codice mancante", "Inserisci un codice valido");
-      return;
+  // Gestione selezione ruolo iniziale
+  const handleSelectRole = async (role: "private" | "employee" | "company") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (role === "private") {
+      setStep("vehicle"); // I privati configurano subito il veicolo
+    } else if (role === "employee") {
+      setStep("employee"); // I dipendenti inseriscono il codice d'invito
+    } else if (role === "company") {
+      setStep("company"); // Le aziende creano la flotta
     }
+  };
+
+  // Salvataggio finale del veicolo e ZTL (Chiamata al server)
+  const handleSaveVehicleConfig = async () => {
     setBusy(true);
-    const c = await joinCompany(inviteCode.trim());
-    setBusy(false);
-    if (!c) {
-      Alert.alert(t.invalidInviteCode);
-      return;
+    try {
+      // Qui mandiamo le preferenze al backend su Render
+      // Inoltriamo il ruolo 'private' o aggiorniamo i dettagli del 'driver'
+      await setRole({ 
+        role: user?.role || "private", 
+        vehicle_type: selectedVehicle, 
+        has_ztl: hasZtlPass 
+      });
+      router.replace("/dashboard");
+    } catch (err) {
+      Alert.alert("Errore", "Impossibile salvare la configurazione del veicolo.");
+    } finally {
+      setBusy(false);
     }
-    haptic("heavy");
-    router.replace("/dashboard");
   };
 
-  const doSetup = async () => {
-    if (companyName.trim().length < 2) {
-      Alert.alert("Nome mancante", "Inserisci il nome dell'azienda");
-      return;
-    }
+  const handleCreateCompany = async () => {
+    if (!companyName.trim()) return;
     setBusy(true);
-    const c = await setupCompany(companyName.trim());
-    setBusy(false);
-    if (!c) {
-      Alert.alert("Errore", "Impossibile creare l'azienda");
-      return;
+    try {
+      const res = await setupCompany(companyName);
+      setGeneratedCode(res.invite_code);
+      setStep("company-done");
+    } catch (err) {
+      Alert.alert("Errore", "Impossibile creare l'azienda.");
+    } finally {
+      setBusy(false);
     }
-    haptic("heavy");
-    setGeneratedCode(c.invite_code);
-    setStep("company-done");
-    refresh();
   };
 
-  const copyCode = () => {
-    haptic();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  const goToCompany = () => {
-    router.replace("/company");
+  const handleJoinCompany = async () => {
+    if (!inviteCode.trim()) return;
+    setBusy(true);
+    try {
+      await joinCompany(inviteCode);
+      setStep("vehicle"); // Dopo essere entrato nell'azienda, configura il veicolo aziendale
+    } catch (err) {
+      Alert.alert("Errore", "Codice d'invito non valido.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={["top", "bottom"]} testID="onboarding-screen">
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView contentContainerStyle={{ padding: spacing.xl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-          <View style={styles.logoBadge}>
-            <Ionicons name="map" size={28} color={colors.brand} />
-          </View>
-
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scroll}>
+          
+          {/* STEP 1: SCELTA RUOLO */}
           {step === "choose" && (
-            <>
-              <Text style={styles.title}>{t.onboardingTitle}</Text>
-              <Text style={styles.subtitle}>{t.onboardingSub}</Text>
+            <View style={styles.card}>
+              <Text style={styles.title}>Benvenuto in SpeedyMap</Text>
+              <Text style={styles.subtitle}>Scegli la tua tipologia di profilo per ottimizzare i tuoi percorsi:</Text>
+              
+              <Pressable style={styles.buttonRole} onPress={() => handleSelectRole("private")}>
+                <Ionicons name="person-outline" size={24} color={colors.primary} />
+                <View style={styles.roleTextContainer}>
+                  <Text style={styles.roleTitle}>Utente Privato</Text>
+                  <Text style={styles.roleDesc}>Usa l'app per le tue consegne personali o occasionali</Text>
+                </View>
+              </Pressable>
 
-              <RoleCard
-                testID="role-private"
-                icon="person"
-                title={t.rolePrivate}
-                desc={t.rolePrivateDesc}
-                onPress={choosePrivate}
-                disabled={busy}
-              />
-              <RoleCard
-                testID="role-employee"
-                icon="bicycle"
-                title={t.roleEmployee}
-                desc={t.roleEmployeeDesc}
-                onPress={startEmployee}
-                disabled={busy}
-              />
-              <RoleCard
-                testID="role-company"
-                icon="business"
-                title={t.roleCompany}
-                desc={t.roleCompanyDesc}
-                onPress={startCompany}
-                disabled={busy}
-              />
-            </>
+              <Pressable style={styles.buttonRole} onPress={() => handleSelectRole("employee")}>
+                <Ionicons name="bicycle-outline" size={24} color={colors.primary} />
+                <View style={styles.roleTextContainer}>
+                  <Text style={styles.roleTitle}>Dipendente / Corriere</Text>
+                  <Text style={styles.roleDesc}>Unisciti alla flotta di un'azienda esistente tramite codice</Text>
+                </View>
+              </Pressable>
+
+              <Pressable style={styles.buttonRole} onPress={() => handleSelectRole("company")}>
+                <Ionicons name="business-outline" size={24} color={colors.primary} />
+                <View style={styles.roleTextContainer}>
+                  <Text style={styles.roleTitle}>Azienda / Manager</Text>
+                  <Text style={styles.roleDesc}>Crea una flotta, monitora i corrieri e gestisci i percorsi</Text>
+                </View>
+              </Pressable>
+            </View>
           )}
 
-          {step === "employee" && (
-            <>
-              <Text style={styles.title}>{t.joinCompany}</Text>
-              <Text style={styles.subtitle}>Inserisci il codice ricevuto dalla tua azienda</Text>
+          {/* STEP 2: CONFIGURAZIONE VEICOLO & ZTL */}
+          {step === "vehicle" && (
+            <View style={styles.card}>
+              <Text style={styles.title}>Configura il tuo Mezzo</Text>
+              <Text style={styles.subtitle}>Seleziona il tipo di veicolo per calcolare i tempi e le strade corrette:</Text>
+              
+              {/* Selettori Veicolo */}
+              <View style={styles.vehicleContainer}>
+                <Pressable 
+                  style={[styles.vehicleBox, selectedVehicle === "van" && styles.vehicleSelected]} 
+                  onPress={() => setSelectedVehicle("van")}
+                >
+                  <Ionicons name="car-sport" size={32} color={selectedVehicle === "van" ? "#fff" : colors.primary} />
+                  <Text style={[styles.vehicleLabel, selectedVehicle === "van" && styles.textWhite]}>Furgone</Text>
+                </Pressable>
 
-              <Text style={styles.label}>{t.inviteCodeLabel}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="key-outline" size={18} color={colors.onSurfaceTertiary} />
-                <TextInput
-                  testID="invite-code-input"
-                  value={inviteCode}
-                  onChangeText={(s) => setInviteCode(s.toUpperCase())}
-                  placeholder={t.inviteCodePh}
-                  placeholderTextColor={colors.onSurfaceTertiary}
-                  style={styles.input}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                />
-              </View>
+                <Pressable 
+                  style={[styles.vehicleBox, selectedVehicle === "car" && styles.vehicleSelected]} 
+                  onPress={() => setSelectedVehicle("car")}
+                >
+                  <Ionicons name="car-outline" size={32} color={selectedVehicle === "car" ? "#fff" : colors.primary} />
+                  <Text style={[styles.vehicleLabel, selectedVehicle === "car" && styles.textWhite]}>Macchina</Text>
+                </Pressable>
 
-              <Pressable
-                testID="join-company-btn"
-                onPress={doJoin}
-                disabled={busy}
-                style={({ pressed }) => [styles.cta, busy && { opacity: 0.5 }, pressed && { opacity: 0.85 }]}
-              >
-                {busy ? <ActivityIndicator color={colors.onBrand} /> : <Text style={styles.ctaText}>{t.joinCompany}</Text>}
-              </Pressable>
-
-              <Pressable onPress={() => setStep("choose")} style={styles.backLink}>
-                <Text style={styles.backLinkText}>← Cambia ruolo</Text>
-              </Pressable>
-            </>
-          )}
-
-          {step === "company" && (
-            <>
-              <Text style={styles.title}>{t.createCompany}</Text>
-              <Text style={styles.subtitle}>Crea la tua azienda e ricevi un codice invito da condividere</Text>
-
-              <Text style={styles.label}>{t.companyNameLabel}</Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="business-outline" size={18} color={colors.onSurfaceTertiary} />
-                <TextInput
-                  testID="company-name-input"
-                  value={companyName}
-                  onChangeText={setCompanyName}
-                  placeholder={t.companyNamePh}
-                  placeholderTextColor={colors.onSurfaceTertiary}
-                  style={styles.input}
-                />
-              </View>
-
-              <Pressable
-                testID="setup-company-btn"
-                onPress={doSetup}
-                disabled={busy}
-                style={({ pressed }) => [styles.cta, busy && { opacity: 0.5 }, pressed && { opacity: 0.85 }]}
-              >
-                {busy ? <ActivityIndicator color={colors.onBrand} /> : <Text style={styles.ctaText}>{t.createCompany}</Text>}
-              </Pressable>
-
-              <Pressable onPress={() => setStep("choose")} style={styles.backLink}>
-                <Text style={styles.backLinkText}>← Cambia ruolo</Text>
-              </Pressable>
-            </>
-          )}
-
-          {step === "company-done" && generatedCode && (
-            <>
-              <View style={styles.successBadge}>
-                <Ionicons name="checkmark-circle" size={48} color={colors.success} />
-              </View>
-              <Text style={styles.title}>{t.companyCreated}</Text>
-              <Text style={styles.subtitle}>{t.yourInviteCode}</Text>
-
-              <View style={styles.codeBox} testID="invite-code-display">
-                <Text style={styles.codeText}>{generatedCode}</Text>
-                <Pressable testID="copy-code-btn" onPress={copyCode} style={styles.copyBtn}>
-                  <Ionicons name={copied ? "checkmark" : "copy-outline"} size={18} color={colors.brand} />
-                  <Text style={styles.copyText}>{copied ? t.copied : t.copy}</Text>
+                <Pressable 
+                  style={[styles.vehicleBox, selectedVehicle === "scooter" && styles.vehicleSelected]} 
+                  onPress={() => setSelectedVehicle("scooter")}
+                >
+                  <Ionicons name="moped-outline" size={32} color={selectedVehicle === "scooter" ? "#fff" : colors.primary} />
+                  <Text style={[styles.vehicleLabel, selectedVehicle === "scooter" && styles.textWhite]}>Scooter</Text>
                 </Pressable>
               </View>
 
-              <Text style={styles.hint}>
-                Condividi questo codice con i tuoi driver: ognuno potrà inserirlo durante la registrazione per entrare nella tua azienda.
-              </Text>
+              {/* Toggle ZTL */}
+              <View style={styles.settingRow}>
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>Possiedi il Pass ZTL?</Text>
+                  <Text style={styles.settingDesc}>Se attivo, l'algoritmo includerà le zone a traffico limitato di Palermo nei percorsi rapidi.</Text>
+                </View>
+                <Switch 
+                  value={hasZtlPass} 
+                  onValueChange={setHasZtlPass}
+                  trackColor={{ false: "#767577", true: colors.primary }}
+                />
+              </View>
 
-              <Pressable
-                testID="goto-company-btn"
-                onPress={goToCompany}
-                style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}
-              >
-                <Text style={styles.ctaText}>{t.goToDashboard}</Text>
+              <Pressable style={styles.buttonMain} onPress={handleSaveVehicleConfig} disabled={busy}>
+                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonMainText}>Entra nella Mappa</Text>}
               </Pressable>
-            </>
+            </View>
           )}
+
+          {/* STEP: CREA AZIENDA */}
+          {step === "company" && (
+            <View style={styles.card}>
+              <Text style={styles.title}>Registra la tua Azienda</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Nome Azienda / Flotta" 
+                value={companyName} 
+                onChangeText={setCompanyName} 
+              />
+              <Pressable style={styles.buttonMain} onPress={handleCreateCompany} disabled={busy}>
+                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonMainText}>Crea Flotta</Text>}
+              </Pressable>
+            </View>
+          )}
+
+          {/* STEP: CODICE INVITATO DIPENDENTE */}
+          {step === "employee" && (
+            <View style={styles.card}>
+              <Text style={styles.title}>Unisciti alla Flotta</Text>
+              <Text style={styles.subtitle}>Inserisci il codice fornito dal tuo datore di lavoro:</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Codice Invito Azienda" 
+                value={inviteCode} 
+                onChangeText={setInviteCode} 
+                autoCapitalize="characters"
+              />
+              <Pressable style={styles.buttonMain} onPress={handleJoinCompany} disabled={busy}>
+                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonMainText}>Verifica Codice</Text>}
+              </Pressable>
+            </View>
+          )}
+
+          {/* STEP: CONFERMA CODICE AZIENDA CREATA */}
+          {step === "company-done" && (
+            <View style={styles.card}>
+              <Text style={styles.title}>Azienda Creata!</Text>
+              <Text style={styles.subtitle}>Condividi questo codice con i tuoi autisti per farli unire alla flotta:</Text>
+              <View style={styles.codeContainer}>
+                <Text style={styles.codeText}>{generatedCode}</Text>
+              </View>
+              <Pressable style={styles.buttonMain} onPress={() => router.replace("/dashboard")}>
+                <Text style={styles.buttonMainText}>Vai alla Dashboard di Controllo</Text>
+              </Pressable>
+            </View>
+          )}
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-function RoleCard({
-  icon, title, desc, onPress, disabled, testID,
-}: {
-  icon: any; title: string; desc: string; onPress: () => void; disabled?: boolean; testID?: string;
-}) {
-  return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [styles.roleCard, pressed && { opacity: 0.85, borderColor: colors.brand }]}
-    >
-      <View style={styles.roleIcon}>
-        <Ionicons name={icon} size={26} color={colors.brand} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.roleTitle}>{title}</Text>
-        <Text style={styles.roleDesc}>{desc}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={22} color={colors.onSurfaceTertiary} />
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.surface },
-  logoBadge: {
-    width: 56, height: 56, borderRadius: radius.md,
-    backgroundColor: colors.brandTertiary, alignItems: "center", justifyContent: "center",
-    marginBottom: spacing.lg,
-  },
-  title: { color: colors.onSurface, fontSize: 28, fontWeight: "800", marginBottom: 6 },
-  subtitle: { color: colors.onSurfaceTertiary, fontSize: 15, lineHeight: 22, marginBottom: spacing.xl },
-
-  roleCard: {
-    flexDirection: "row", alignItems: "center", gap: spacing.md,
-    backgroundColor: colors.surfaceSecondary, borderRadius: radius.md,
-    padding: spacing.lg, marginBottom: spacing.md,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  roleIcon: {
-    width: 48, height: 48, borderRadius: radius.md,
-    backgroundColor: colors.brandTertiary,
-    alignItems: "center", justifyContent: "center",
-  },
-  roleTitle: { color: colors.onSurface, fontSize: 16, fontWeight: "700" },
-  roleDesc: { color: colors.onSurfaceTertiary, fontSize: 13, marginTop: 2 },
-
-  label: {
-    color: colors.onSurfaceSecondary, fontSize: 12, fontWeight: "700",
-    textTransform: "uppercase", letterSpacing: 0.6,
-    marginTop: spacing.lg, marginBottom: spacing.sm,
-  },
-  inputWrap: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: colors.surfaceSecondary, borderRadius: radius.md,
-    paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border,
-  },
-  input: { flex: 1, color: colors.onSurface, paddingVertical: 14, fontSize: 16 },
-
-  cta: {
-    marginTop: spacing.xl, backgroundColor: colors.brand,
-    paddingVertical: 16, borderRadius: radius.md,
-    alignItems: "center", justifyContent: "center",
-  },
-  ctaText: { color: colors.onBrand, fontSize: 16, fontWeight: "700" },
-
-  backLink: { alignSelf: "center", marginTop: spacing.lg, padding: spacing.sm },
-  backLinkText: { color: colors.onSurfaceTertiary, fontSize: 14 },
-
-  successBadge: { alignItems: "center", marginVertical: spacing.lg },
-  codeBox: {
-    backgroundColor: colors.surfaceSecondary, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.brand,
-    padding: spacing.xl, alignItems: "center", marginBottom: spacing.lg,
-  },
-  codeText: {
-    color: colors.brand, fontSize: 36, fontWeight: "800",
-    letterSpacing: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-  },
-  copyBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    marginTop: spacing.md, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: radius.pill, backgroundColor: colors.brandTertiary,
-  },
-  copyText: { color: colors.brand, fontWeight: "600", fontSize: 13 },
-  hint: { color: colors.onSurfaceTertiary, fontSize: 13, lineHeight: 20 },
+  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  scroll: { padding: spacing.medium, justifyContent: "center", flexGrow: 1 },
+  card: { backgroundColor: "#fff", padding: 24, borderRadius: radius.large, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#2d3748", marginBottom: 8, textAlign: "center" },
+  subtitle: { fontSize: 14, color: "#718096", marginBottom: 24, textAlign: "center", lineHeight: 20 },
+  buttonRole: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: radius.medium, borderWidth: 1, borderColor: "#e2e8f0", marginBottom: 12, backgroundColor: "#fff" },
+  roleTextContainer: { marginLeft: 16, flex: 1 },
+  roleTitle: { fontSize: 16, fontWeight: "600", color: "#2d3748" },
+  roleDesc: { fontSize: 12, color: "#718096", marginTop: 2 },
+  vehicleContainer: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
+  vehicleBox: { flex: 1, alignment: "center", padding: 16, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: radius.medium, marginHorizontal: 4, alignItems: "center" },
+  vehicleSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  vehicleLabel: { fontSize: 12, fontWeight: "600", marginTop: 8, color: "#4a5568" },
+  textWhite: { color: "#fff" },
+  settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#edf2f7", marginBottom: 24 },
+  settingText: { flex: 0.85 },
+  settingTitle: { fontSize: 16, fontWeight: "600", color: "#2d3748" },
+  settingDesc: { fontSize: 12, color: "#718096", marginTop: 4, lineHeight: 16 },
+  input: { borderWidth: 1, borderColor: "#e2e8f0", padding: 14, borderRadius: radius.medium, marginBottom: 16, fontSize: 16 },
+  buttonMain: { backgroundColor: colors.primary, padding: 16, borderRadius: radius.medium, alignItems: "center", marginTop: 8 },
+  buttonMainText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  codeContainer: { backgroundColor: "#f7fafc", padding: 16, borderRadius: radius.medium, marginVertical: 16, borderStyle: "dashed", borderWidth: 2, borderColor: colors.primary, alignItems: "center" },
+  codeText: { fontSize: 24, fontWeight: "bold", color: colors.primary, letterSpacing: 2 }
 });
