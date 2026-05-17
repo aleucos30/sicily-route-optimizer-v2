@@ -716,3 +716,41 @@ async def on_startup():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+# --- NUOVE ROTTE EMAIL/PASSWORD ---
+import hashlib
+from pydantic import BaseModel
+
+class UserAuth(BaseModel):
+    email: str
+    password: str
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@api_router.post("/register")
+async def register_user(user: UserAuth):
+    existing = await db.users.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email già registrata.")
+    
+    user_dict = {
+        "email": user.email, 
+        "password": hash_password(user.password), 
+        "role": "driver",
+        "created_at": datetime.now(timezone.utc)
+    }
+    await db.users.insert_one(user_dict)
+    return {"message": "Registrazione completata!"}
+
+@api_router.post("/login")
+async def login_user(user: UserAuth):
+    existing = await db.users.find_one({"email": user.email})
+    if not existing or existing.get("password") != hash_password(user.password):
+        raise HTTPException(status_code=401, detail="Credenziali errate.")
+    
+    return {
+        "message": "Accesso eseguito!", 
+        "email": existing["email"], 
+        "role": existing.get("role", "driver")
+    }
